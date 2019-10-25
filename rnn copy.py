@@ -7,9 +7,18 @@ import numpy as np
 import os
 import pandas as pd
 
+
 mpl.rcParams['figure.figsize'] = (8, 6)
 mpl.rcParams['axes.grid'] = False
 
+TRAIN_SPLIT = 1500
+tf.random.set_seed(13)
+
+BATCH_SIZE = 128
+BUFFER_SIZE = 1000
+
+EVALUATION_INTERVAL = 200
+EPOCHS = 10
 
 # zip_path = tf.keras.utils.get_file(
 #     # origin='https://storage.googleapis.com/tensorflow/tf-keras-datasets/jena_climate_2009_2016.csv.zip',
@@ -38,14 +47,36 @@ def univariate_data(dataset, start_index, end_index, history_size, target_size):
     labels.append(dataset[i+target_size])
   return np.array(data), np.array(labels)
 
-TRAIN_SPLIT = 1500
-tf.random.set_seed(13)
+def create_time_steps(length):
+  time_steps = []
+  for i in range(-length, 0, 1):
+    time_steps.append(i)
+  return time_steps
 
-BATCH_SIZE = 128
-BUFFER_SIZE = 1000
+def show_plot(plot_data, delta, title):
+  labels = ['History', 'True Future', 'Model Prediction']
+  marker = ['.-', 'rx', 'go']
+  time_steps = create_time_steps(plot_data[0].shape[0])
+  if delta:
+    future = delta
+  else:
+    future = 0
 
-EVALUATION_INTERVAL = 200
-EPOCHS = 1000
+  plt.title(title)
+  for i, x in enumerate(plot_data):
+    if i:
+      plt.plot(future, plot_data[i], marker[i], markersize=10,
+               label=labels[i])
+    else:
+      plt.plot(time_steps, plot_data[i].flatten(), marker[i], label=labels[i])
+  plt.legend()
+  plt.xlim([time_steps[0], (future+5)*2])
+  plt.xlabel('Time-Step')
+  return plt
+
+def baseline(history):
+  return np.mean(history)
+
 
 '''
 # Part 1: Forecast a univariate time series
@@ -78,40 +109,6 @@ print (x_train_uni[0])
 print ('\n Target temperature to predict')
 print (y_train_uni[0])
 
-def create_time_steps(length):
-  time_steps = []
-  for i in range(-length, 0, 1):
-    time_steps.append(i)
-  return time_steps
-
-def show_plot(plot_data, delta, title):
-  labels = ['History', 'True Future', 'Model Prediction']
-  marker = ['.-', 'rx', 'go']
-  time_steps = create_time_steps(plot_data[0].shape[0])
-  if delta:
-    future = delta
-  else:
-    future = 0
-
-  plt.title(title)
-  for i, x in enumerate(plot_data):
-    if i:
-      plt.plot(future, plot_data[i], marker[i], markersize=10,
-               label=labels[i])
-    else:
-      plt.plot(time_steps, plot_data[i].flatten(), marker[i], label=labels[i])
-  plt.legend()
-  plt.xlim([time_steps[0], (future+5)*2])
-  plt.xlabel('Time-Step')
-  return plt
-
-show_plot([x_train_uni[0], y_train_uni[0]], 0, 'Sample Example')
-
-def baseline(history):
-  return np.mean(history)
-
-show_plot([x_train_uni[0], y_train_uni[0], baseline(x_train_uni[0])], 0,
-           'Baseline Prediction Example')
 
 
 
@@ -141,6 +138,10 @@ for x, y in val_univariate.take(3):
                     simple_lstm_model.predict(x)[0]], 0, 'Simple LSTM model')
   plot.show()
 
+show_plot([x_train_uni[0], y_train_uni[0]], 0, 'Sample Example')
+
+show_plot([x_train_uni[0], y_train_uni[0], baseline(x_train_uni[0])], 0,
+           'Baseline Prediction Example')
 '''
 
 features_considered = ['red1','red2','red3','red4','red5','red6','blue']
