@@ -147,11 +147,19 @@ features_considered = ['red1','red2','red3','red4','red5','red6','blue']
 features = df[features_considered]
 features.index = df['Date Time']
 features.head()
-features.plot(subplots=True)
+# features.plot(subplots=True)
 
 dataset = features.values
 data_mean = dataset.mean(axis=0)
 data_std = dataset.std(axis=0)
+num = 0
+for t in data_std:
+  print("data_mean  of "+ str(num) + " the value is : " + str(t) )
+  num+=1
+num = 0
+for p in data_mean:
+  print("data_std of  " + str(num) + " the value is : " + str(p) )
+  num+=1
 dataset = (dataset-data_mean)/data_std
 
 
@@ -175,10 +183,12 @@ def multivariate_data(dataset, target, start_index, end_index, history_size,
 
   return np.array(data), np.array(labels)
 
-past_history = 720
-future_target = 72
-STEP = 6
 
+past_history = 720
+STEP = 6
+future_target = 36
+
+'''
 x_train_single, y_train_single = multivariate_data(dataset, dataset[:, 1], 0,
                                                    TRAIN_SPLIT, past_history,
                                                    future_target, STEP,
@@ -203,8 +213,8 @@ single_step_model.add(tf.keras.layers.Dense(1))
 
 single_step_model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
 
-for x, y in val_data_single.take(1):
-  print(single_step_model.predict(x).shape)
+# for x, y in val_data_single.take(1):
+#   print(single_step_model.predict(x).shape)
 
 single_step_history = single_step_model.fit(train_data_single, epochs=EPOCHS,
                                         steps_per_epoch=EVALUATION_INTERVAL,
@@ -225,17 +235,18 @@ def plot_train_history(history, title):
   plt.legend()
 
   plt.show()
+'''
+# plot_train_history(single_step_history,
+#                    'Single Step Training and validation loss')
 
-plot_train_history(single_step_history,
-                   'Single Step Training and validation loss')
+# for x, y in val_data_single.take(3):
+#   plot = show_plot([x[0][:, 1].numpy(), y[0].numpy(),
+#                     single_step_model.predict(x)[0]], 12,
+#                    'Single Step Prediction')
+#   plot.show()
 
-for x, y in val_data_single.take(3):
-  plot = show_plot([x[0][:, 1].numpy(), y[0].numpy(),
-                    single_step_model.predict(x)[0]], 12,
-                   'Single Step Prediction')
-  plot.show()
+future_target = 36
 
-future_target = 72
 x_train_multi, y_train_multi = multivariate_data(dataset, dataset[:, 1], 0,
                                                  TRAIN_SPLIT, past_history,
                                                  future_target, STEP)
@@ -253,37 +264,42 @@ def multi_step_plot(history, true_future, prediction):
   plt.figure(figsize=(12, 6))
   num_in = create_time_steps(len(history))
   num_out = len(true_future)
-
+  true_future_array =  np.array(true_future)
+  prediction_array = np.array(prediction)
+  num = 0
+  for t in true_future_array:
+    print("True Futuren of "+ str(num) + " the value is : " + str(t) )
+    num+=1
+  num = 0
+  for p in prediction_array:
+    print("Predicted Future of  " + str(num) + " the value is : " + str(p) )
+    num+=1
   plt.plot(num_in, np.array(history[:, 1]), label='History')
-  plt.plot(np.arange(num_out)/STEP, np.array(true_future), 'bo',
+  plt.plot(np.arange(num_out)/STEP, true_future_array,  'bo',
            label='True Future')
   if prediction.any():
-    plt.plot(np.arange(num_out)/STEP, np.array(prediction), 'ro',
+    plt.plot(np.arange(num_out)/STEP, prediction_array,  'ro',
              label='Predicted Future')
   plt.legend(loc='upper left')
   plt.show()
-
-for x, y in train_data_multi.take(1):
-  multi_step_plot(x[0], y[0], np.array([0]))
 
 multi_step_model = tf.keras.models.Sequential()
 multi_step_model.add(tf.keras.layers.LSTM(32,
                                           return_sequences=True,
                                           input_shape=x_train_multi.shape[-2:]))
 multi_step_model.add(tf.keras.layers.LSTM(16, activation='relu'))
-multi_step_model.add(tf.keras.layers.Dense(72))
+multi_step_model.add(tf.keras.layers.Dense(future_target))
 
 multi_step_model.compile(optimizer=tf.keras.optimizers.RMSprop(clipvalue=1.0), loss='mae')
-
-for x, y in val_data_multi.take(1):
-  print (multi_step_model.predict(x).shape)
 
 multi_step_history = multi_step_model.fit(train_data_multi, epochs=EPOCHS,
                                           steps_per_epoch=EVALUATION_INTERVAL,
                                           validation_data=val_data_multi,
                                           validation_steps=50)
 
-plot_train_history(multi_step_history, 'Multi-Step Training and validation loss')
-for x, y in val_data_multi.take(3):
-  multi_step_plot(x[0], y[0], multi_step_model.predict(x)[0])
+for i in range(0,6):
+  for x, y in val_data_multi.take(1):
+    # print('x=' + str(x[i]))
+    # print('y=' + str(y[i]))
+    multi_step_plot(x[i], y[i], multi_step_model.predict(x)[i])
 
